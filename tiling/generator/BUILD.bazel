@@ -1,0 +1,10 @@
+load("@aspect_rules_py//py:defs.bzl", "py_binary")
+
+py_binary(
+    name = "generator",
+    srcs = glob(["src/**/*.py"]),
+    main = "src/tile_generator.py",
+    deps = [
+
+    ],
+)

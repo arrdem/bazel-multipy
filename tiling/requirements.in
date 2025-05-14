@@ -1,0 +1,21 @@
+# Requirements files request specific packages which should be installed. Only
+# packages which are directly depended on or imported from should be listed
+# here. Version constraints of both direct and transitive dependencies should
+# live in the matching `constraints.txt` file.
+#
+# The `-c` requirements list option allows for additional files to be pulled in
+# as constraints.
+#
+# The `-r` requirements list option allows for requirements to be included from
+# other files if it's beneficial to decompose the requirement lists. For
+# instance sub-components could individually provide an intentional requirement
+# list which is then stitched together to form a requirement solution.
+
+-c ./constraints.txt
+
+requests
+opentelemetry-api
+opentelemetry-sdk
+cartopy
+pandas
+numpy

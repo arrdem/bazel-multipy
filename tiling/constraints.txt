@@ -1,0 +1,12 @@
+# The constraints file specifies version constraints to be applied to the
+# requirements and their transitive dependencies when computing a version lock.
+#
+# It can be convenient to list constraints separately from requirements so as
+# not to muddy the intentional dependency list with constraints, which can often
+# contain pinnings of transitive dependencies for operational reasons and other
+# implementation details.
+
+numpy~=2.2.0
+pandas~=2.2.0
+
+requests==2.32.3

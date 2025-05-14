@@ -1,0 +1,8 @@
+[project]
+name = "coding"
+version = "0.0.0"
+
+dependencies = [
+  "flask",
+  "click",
+]

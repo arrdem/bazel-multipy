@@ -1,0 +1,21 @@
+load("@aspect_rules_py//py:defs.bzl", "py_binary")
+load("@rules_uv//uv:pip.bzl", "pip_compile")
+
+pip_compile(
+    name = "requirements",
+    requirements_in = "pyproject.toml",
+    requirements_txt = "requirements_lock.txt",
+    args = [
+        "--universal",
+    ],
+)
+
+py_binary(
+    name = "coding",
+    srcs = glob(["src/**/*.py"]),
+    main = "src/coding_server.py",
+    deps = [
+        "@coding_pip//click",
+        "@coding_pip//flask",
+    ],
+)

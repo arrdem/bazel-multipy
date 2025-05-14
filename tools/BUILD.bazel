@@ -1,0 +1,19 @@
+load("@bazel_env.bzl", "bazel_env")
+load("@rules_multitool//multitool:multitool.bzl", "multitool")
+load("@multitool//:tools.bzl", MULTITOOL_TOOLS = "TOOLS")
+load("@aspect_rules_lint//format:defs.bzl", "format_multirun")
+
+format_multirun(name = "format")
+
+bazel_env(
+    name = "bazel_env",
+    tools = {
+        "buildifier": "@buildifier_prebuilt//:buildifier",
+        "python": "@rules_python//python:current_py_toolchain",
+    } | {
+        t: "@multitool//tools/" + t
+        for t in MULTITOOL_TOOLS
+    } | {
+        "monoformat": ":format",
+    },
+)
