@@ -1,0 +1,14 @@
+# -*- mode: bazel-starlark -*-
+# Should be prelude.bzl
+#
+# This module allows you to define "prelude" state which is provided when all
+# BUILD[.bazel] files in the repo are evaluated. Usually this consists of loads
+# to import custom rules and macros.
+#
+# Since we've wrapped `py_test` with some helpful pytest machinery, we're using
+# this pattern to hide that `py_test` and `py_binary` are coming from different
+# places which would be inconvenient to make users remember.
+
+load("@aspect_rules_py//py:defs.bzl", "py_binary")
+load("//tools/pytest:defs.bzl", "py_test")
+py_pytest = py_test

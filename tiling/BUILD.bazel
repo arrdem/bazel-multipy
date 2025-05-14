@@ -9,5 +9,5 @@ pip_compile(
         "--universal",
    ],
     requirements_in = "requirements.in",
-    requirements_txt = "requirements_lock.txt",
+    requirements_txt = "requirements.lock",
 )

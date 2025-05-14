@@ -7,9 +7,12 @@ format_multirun(name = "format")
 
 bazel_env(
     name = "bazel_env",
+    toolchains = {
+        "python": "@rules_python//python:current_py_toolchain",
+    },
     tools = {
         "buildifier": "@buildifier_prebuilt//:buildifier",
-        "python": "@rules_python//python:current_py_toolchain",
+        "python": "$(PYTHON3)",
     } | {
         t: "@multitool//tools/" + t
         for t in MULTITOOL_TOOLS

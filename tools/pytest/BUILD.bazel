@@ -1,5 +1,11 @@
 load("@aspect_rules_py//py:defs.bzl", "py_pytest_main")
 
+# We expand the py_pytest_main template once here, and use a macro to make it
+# the default main for the rest of the repo. This eliminates the need to
+# repeatedly expand the pytest driver template.
+#
+# See defs.bzl for the wrapper macro.
+
 py_pytest_main(
     name = "__test__",
 )

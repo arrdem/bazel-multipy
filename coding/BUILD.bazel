@@ -4,7 +4,7 @@ load("@rules_uv//uv:pip.bzl", "pip_compile")
 pip_compile(
     name = "requirements",
     requirements_in = "pyproject.toml",
-    requirements_txt = "requirements_lock.txt",
+    requirements_txt = "requirements.lock",
     args = [
         "--universal",
     ],
