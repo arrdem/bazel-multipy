@@ -1,0 +1,14 @@
+load("@rules_oci//oci:defs.bzl", "oci_image", "oci_load")
+
+oci_image(
+    name = "_base_image",
+    base = "@ubuntu",
+    entrypoint = ["bash"],
+    tars = [],
+)
+
+oci_load(
+    name = "base-ubuntu.load",
+    image = ":_base_image",
+    repo_tags = ["multipy-base-ubuntu:latest"],
+)

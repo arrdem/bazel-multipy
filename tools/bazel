@@ -1,0 +1,71 @@
+#!/bin/bash
+
+# Exit codes:
+#  2 - container engine not running
+#  3 - container engine not found
+#  4 - failed to build/load the base image
+
+set -eu -o pipefail
+
+if [ -n "${TOOLS_BAZEL_NOWRAP:-}" ]; then
+    args=("${@}")
+    if [ -n "${TOOLS_BAZEL_STARTUP_OPTIONS:-}" ]; then
+        args=("${TOOLS_BAZEL_STARTUP_OPTIONS[*]}" "${args[@]}")
+    fi
+    exec "${BAZEL_REAL}" "${args[@]}"
+fi
+
+if command -v crictl >/dev/null 2>&1; then
+    if ! crictl info >/dev/null 2>&1; then
+        echo "Error: cri/containerd detected but doesn't seem to be running - please start containerd and try again!" >&2
+        exit 2
+    fi
+elif command -v docker >/dev/null 2>&1; then
+     if ! docker info >/dev/null 2>&1; then
+         echo "Error: Docker detected but doesn't seem to be running - please start docker and try again!" >&2
+         exit 2
+     fi
+elif command -v colima >/dev/null 2>&1; then
+    if ! colima status >/dev/null 2>&1; then
+        echo "Error: Colima detected but doesn't seem to be running - please start colima and try again!" >&2
+        exit 2
+    fi
+fi
+
+export TOOLS_BAZEL_NOWRAP=1
+
+if ! "${BAZEL_REAL}" run //tools/docker:base-ubuntu.load; then
+    echo "Error: Unable to load the configured base image!" >&2
+    exit 4
+fi
+
+workspace_root=$("${BAZEL_REAL}" info workspace)
+container_workdir="/work/$(basename "${workspace_root}")"
+container_id="dazel-$(basename "${workspace_root}")-$(echo "${workspace_root}" | sha1sum | cut -d' ' -f1)"
+server_id="$(echo "${container_workdir}" | sha1sum | cut -d' ' -f1)"
+container_server_root="$(dirname "$(bazel info install_base)")/${server_id}"
+# In order to preserve file permissions we have to run the container as the current user
+container_uid=$(id -u)
+container_gid=$(id -g)
+
+# https://bugs.openjdk.org/browse/JDK-8345296
+if ! docker ps | grep -qe "${container_id}"; then
+    docker run \
+        --detach \
+        --rm \
+        --name="${container_id}" \
+        --user="${container_uid}:${container_gid}" \
+        --mount="type=bind,source=/etc/ssl/certs,target=/etc/ssl/certs" \
+        --mount="type=bind,source=$(realpath ~/.cache),target=/cache" \
+        --mount="type=bind,source=${workspace_root},target=${container_workdir}" \
+        --cap-add=CAP_SETPCAP \
+        -e "USER=$(whoami)" \
+        -e "XDG_CACHE_HOME=/cache" \
+        -e "TOOLS_BAZEL_NOWRAP=1" \
+        --workdir "${container_workdir}" \
+        --entrypoint="/bin/sh" \
+        "1363579b40de9b3aa5cbde6bbdac801a02e2ddc3c7778468fe7937e27dfc5a80" \
+        "${container_workdir}/tools/docker/bazel-server.sh"
+fi
+
+docker exec -it "${container_id}" /usr/bin/bazel "$@"
