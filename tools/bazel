@@ -48,7 +48,7 @@ container_server_root="$(dirname "$(bazel info install_base)")/${server_id}"
 container_uid=$(id -u)
 container_gid=$(id -g)
 
-# https://bugs.openjdk.org/browse/JDK-8345296
+# Note that we need to add a cap due to https://bugs.openjdk.org/browse/JDK-8345296
 if ! docker ps | grep -qe "${container_id}"; then
     docker run \
         --detach \
@@ -64,8 +64,13 @@ if ! docker ps | grep -qe "${container_id}"; then
         -e "TOOLS_BAZEL_NOWRAP=1" \
         --workdir "${container_workdir}" \
         --entrypoint="/bin/sh" \
-        "1363579b40de9b3aa5cbde6bbdac801a02e2ddc3c7778468fe7937e27dfc5a80" \
+        "83f75b528965d4c86d93f4d587633946c33caa11168d61a03dc2e4272e591e2b" \
         "${container_workdir}/tools/docker/bazel-server.sh"
 fi
 
-docker exec -it "${container_id}" /usr/bin/bazel "$@"
+# Shutdown doesn't seem to work quite right; hack it
+if [ "${1:-}" = "shutdown" ]; then
+    docker kill "${container_id}"
+else
+    docker exec -it "${container_id}" /usr/bin/bazel "$@"
+fi

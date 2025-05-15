@@ -1,13 +1,9 @@
-FROM ubuntu:25.04 AS builder
+FROM ubuntu:25.04 AS final
 SHELL ["/bin/bash", "-c"]
 RUN uname -a
 RUN apt-get update
-RUN apt-get install -y curl build-essential
+RUN apt-get install -y curl build-essential gcc g++
 RUN set -x && case $(uname -m) in aarch64|arm*) GOARCH=arm64;; x86*) GOARCH=amd64;; *) exit 1;; esac \
     && curl -L -o /usr/bin/bazelisk https://github.com/bazelbuild/bazelisk/releases/download/v1.25.0/bazelisk-linux-${GOARCH} \
     && chmod +x /usr/bin/bazelisk \
     && ln -s /usr/bin/bazelisk /usr/bin/bazel
-
-FROM ubuntu:25.04 AS final
-COPY --from=builder /usr/bin/bazelisk /usr/bin/bazelisk
-COPY --from=builder /usr/bin/bazel /usr/bin/bazel
