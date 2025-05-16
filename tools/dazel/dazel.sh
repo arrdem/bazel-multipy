@@ -48,12 +48,14 @@ EOF
     exit 4
 fi
 
+workspace_root=$("${BAZEL_REAL}" info workspace)
+
 # Convert the image label to its shasum so we can detect and for a restart if
 # the image we want to use changes.
 #
 # Ideally we'd use shasum-qualified labels but those seem to only work with
 # reference to remote images?
-container_image="$(cat "$("${BAZEL_REAL}" cquery --output=files "${IMAGE_PLATFORM_ARGS[@]}" "${IMAGE_LABEL_TARGET}" 2>/dev/null)")"
+container_image="$(cat "${workspace_root}/$("${BAZEL_REAL}" cquery --output=files "${IMAGE_PLATFORM_ARGS[@]}" "${IMAGE_LABEL_TARGET}" 2>/dev/null)")"
 
 function ac {
     awk "{print \$${1};}"
@@ -63,7 +65,6 @@ function md5str {
     md5sum | ac 1
 }
 
-workspace_root=$("${BAZEL_REAL}" info workspace)
 container_id_base="dazel-$(basename "${workspace_root}")"
 container_uid=$(id -u)
 container_gid=$(id -g)
