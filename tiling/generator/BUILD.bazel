@@ -1,8 +1,26 @@
+load("@aspect_rules_py//py:defs.bzl", "py_binary")
+load("//tools/pytest:defs.bzl", "py_pytest_factory")
+
+py_test = py_pytest_factory(deps = ["@tiling_pip//pytest"])
+
 py_binary(
     name = "generator",
     srcs = glob(["src/**/*.py"]),
     main = "src/tile_generator.py",
+    imports = ["src"],
     deps = [
+        "@tiling_pip//shapely",
+        "@tiling_pip//geojson",
+    ],
+)
 
+py_test(
+    name = "tests",
+    srcs = glob(["test/**/*.py"]),
+    deps = [
+        ":generator"
+    ],
+    imports = [
+        "test",
     ],
 )

@@ -13,9 +13,11 @@
 
 -c ./constraints.txt
 
-requests
+cartopy
+geojson
+numpy
 opentelemetry-api
 opentelemetry-sdk
-cartopy
 pandas
-numpy
+pytest
+requests

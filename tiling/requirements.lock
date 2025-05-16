@@ -8,6 +8,8 @@ certifi==2025.4.26
     #   requests
 charset-normalizer==3.4.2
     # via requests
+colorama==0.4.6 ; sys_platform == 'win32'
+    # via pytest
 contourpy==1.3.2
     # via matplotlib
 cycler==0.12.1
@@ -18,10 +20,14 @@ deprecated==1.2.18
     #   opentelemetry-semantic-conventions
 fonttools==4.57.0
     # via matplotlib
+geojson==3.2.0
+    # via -r tiling/requirements.in
 idna==3.10
     # via requests
 importlib-metadata==8.6.1
     # via opentelemetry-api
+iniconfig==2.1.0
+    # via pytest
 kiwisolver==1.4.8
     # via matplotlib
 matplotlib==3.10.1
@@ -48,18 +54,23 @@ packaging==25.0
     # via
     #   cartopy
     #   matplotlib
+    #   pytest
 pandas==2.2.3
     # via
     #   -c tiling/./constraints.txt
     #   -r tiling/requirements.in
 pillow==11.2.1
     # via matplotlib
+pluggy==1.6.0
+    # via pytest
 pyparsing==3.2.3
     # via matplotlib
 pyproj==3.7.1
     # via cartopy
 pyshp==2.3.1
     # via cartopy
+pytest==8.3.5
+    # via -r tiling/requirements.in
 python-dateutil==2.9.0.post0
     # via
     #   matplotlib

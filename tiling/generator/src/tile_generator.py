@@ -10,7 +10,7 @@ OUTPUT_DIR = "tiles"
 
 Path(OUTPUT_DIR).mkdir(parents=True, exist_ok=True)
 
-def _create_dummy_polygon(center_lon: float, center_lat: float, size: float = 0.01) -> Polygon:
+def dummy_polygon(center_lon: float, center_lat: float, size: float = 0.01) -> Polygon:
     """Creates a simple square polygon centered at the given coordinates."""
     half_size = size / 2
     return Polygon([
@@ -26,7 +26,7 @@ def generate_tiles(output_directory: str = OUTPUT_DIR, num_features: int = 3) ->
     for i in range(num_features):
         lon = -105.0 + (i * 0.05)  # Example longitudes around Denver
         lat = 39.75 + (i * 0.03)   # Example latitudes around Denver
-        polygon = _create_dummy_polygon(lon, lat)
+        polygon = dummy_polygon(lon, lat)
         feature = Feature(geometry=polygon, properties={"id": i, "name": f"Area {i+1}"})
         features.append(feature)
 
