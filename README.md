@@ -1,8 +1,9 @@
 # Monorepo example - multi pip
 
 This repo provides an example of a trio of applications across a pair of
-projects, where each project uses a different virtualenv. The intent is to
-provide an example of current Bazel x Python ecosystem patterns.
+projects, where each project uses a different virtualenv with extensive Docker
+integration. The intent is to provide an example of current Bazel x Python x
+Docker ecosystem patterns.
 
 ## Getting started
 - Clone the repo
