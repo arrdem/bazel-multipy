@@ -108,7 +108,7 @@ function container_args {
 --workdir=${container_root}
 --entrypoint=/bin/bash
 ${container_image}
-${container_root}/tools/dazel/bazel-server.sh
+${container_root}/tools/dazel/dazel-server.sh
 ${container_args[@]}
 EOF
 }
