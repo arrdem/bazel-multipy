@@ -35,8 +35,13 @@ constraint_value(
 """
 
 def _config_repo_impl(rctx):
+    rctx.watch("/bin/docker")
+    rctx.watch("/usr/bin/docker")
+    rctx.watch("/usr/local/bin/docker")
+
     docker = rctx.which("docker")
     flag = "yes" if docker else "no"
+
     rctx.file("BUILD.bazel", BUILD_TMPL.replace("{{FLAG}}", flag))
 
 docker_config = repository_rule(
