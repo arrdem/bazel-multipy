@@ -132,15 +132,32 @@ EOF
 container_args_stamp=$(container_args | md5str | head -c8)
 container_id="${container_id_base}-$(echo "${workspace_root}" | md5str | head -c8)-${container_args_stamp}"
 
-stale_containers=("$(docker container ls | grep -e "${container_id_base}-.*" | grep -v -e "${container_id}" | ac 1)")
-if [ -n "${stale_containers[@]}" ]; then
-    echo "WARNING: Bazel server container config has changed; forcing a restart" >&2
-    docker container kill ${stale_containers[@]} >/dev/null
-fi
+function maybe_start_container {
+    stale_containers=("$(docker container ls | grep -e "${container_id_base}-.*" | grep -v -e "${container_id}" | ac 1)")
+    if [ -n "${stale_containers[@]}" ]; then
+        echo "WARNING: Bazel server container config has changed; forcing a restart" >&2
+        docker container kill ${stale_containers[@]} >/dev/null
+    fi
 
-if ! grep -q -e "${container_id}" <(docker container ls); then
-    echo "INFO: Starting a new Bazel server container"
-    docker run --detach --rm --name="${container_id}" $(container_args) 1>/dev/null 2>&1
-fi
+    if ! grep -q -e "${container_id}" <(docker container ls); then
+        echo "INFO: Starting a new Bazel server container"
+        docker run --detach --rm --name="${container_id}" $(container_args) 1>/dev/null 2>&1
+    fi
+}
 
-docker exec -it "${container_id}" /usr/bin/bazel "${container_args[@]}" "$@"
+case "$1" in
+shutdown)
+    docker kill "${container_id}"
+    ;;
+
+shell)
+    maybe_start_container
+    # Default is a shell
+    exec docker exec -it "${container_id}"
+    ;;
+
+*)
+    maybe_start_container
+    exec docker exec -it "${container_id}" /usr/bin/bazel "${container_args[@]}" "$@"
+    ;;
+esac
