@@ -1,15 +1,13 @@
 load("@buildx//:defs.bzl", "buildx", "context")
 load("@rules_oci//oci:defs.bzl", "oci_image", "oci_load")
-load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
 
 package(default_visibility = ["//visibility:public"])
 
 buildx(
     name = "base_buildx_image",
     build_context = [
-        # replaces FROM python:3.11.9-bullseye with @ubuntu from oci_pull
         context.oci_layout(
-            "ubuntu:25.04",
+            "ubuntu:latest",
             "@ubuntu",
         ),
     ],
@@ -30,7 +28,6 @@ oci_load(
 buildx(
     name = "dev_buildx_image",
     build_context = [
-        # replaces FROM python:3.11.9-bullseye with @ubuntu from oci_pull
         context.oci_layout(
             "base:latest",
             ":base_oci_image",
@@ -52,6 +49,9 @@ oci_load(
 
 genrule(
     name = "base_details",
+    srcs = [
+        ":base_oci_image",
+    ],
     outs = [
         "base.label",
         "base.digest",
@@ -62,6 +62,7 @@ docker images --quiet --no-trunc $$(cat $(location :base.label)) > $(location :b
 """,
     tags = [
         "no-cache",
+        "no-sandbox",
     ],
     target_compatible_with = [
         "@docker_config//:docker_yes",
@@ -74,9 +75,7 @@ docker images --quiet --no-trunc $$(cat $(location :base.label)) > $(location :b
 genrule(
     name = "dev_details",
     srcs = [
-        ":Dockerfile-dev",
-        ":base.digest",
-        ":base.label",
+        ":dev_oci_image",
     ],
     outs = [
         "dev.label",
@@ -88,6 +87,7 @@ docker images --quiet --no-trunc $$(cat $(location :dev.label)) > $(location :de
 """,
     tags = [
         "no-cache",
+        "no-sandbox",
     ],
     target_compatible_with = [
         "@docker_config//:docker_yes",

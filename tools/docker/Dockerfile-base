@@ -1,2 +1,6 @@
-# FIXME: Pin this image by shasum
-FROM ubuntu:25.04 AS final
+# -*- mode: dockerfile -*-
+
+FROM ubuntu:latest AS final
+
+# If you wanted to customize the base, that goes here.
+# We don't for now.

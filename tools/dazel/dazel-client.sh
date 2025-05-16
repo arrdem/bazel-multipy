@@ -14,9 +14,9 @@
 #   server restarts could cause problems.
 
 # Configuration
-#   The target we should build to get a file containing the label of an image to
-#   run as the devcontainer/server base.
-IMAGE_LABEL_TARGET="//tools/docker:dev.label"
+#   The target we should build to get a file containing the digest of a loaded
+#   image to run as the devcontainer/server base.
+IMAGE_DIGEST_TARGET="//tools/docker:dev.digest"
 
 # Exit codes:
 #   2 - container engine not running
@@ -55,11 +55,11 @@ if command -v docker >/dev/null 2>&1; then
 fi
 
 # rules_oci loads print out "Loaded image: <label>", try to extract that
-if ! "${BAZEL_REAL}" build "${IMAGE_LABEL_TARGET}" 1>/dev/null 2>&1; then
+if ! "${BAZEL_REAL}" build "${IMAGE_DIGEST_TARGET}"; then
     cat <<EOF >&2
 ERROR: Unable to load the configured base image!
-       This is likely a result of ${IMAGE_LABEL_TARGET} failing to build.
-       To debug, check that 'bazel build ${IMAGE_LABEL_TARGET}' passes.
+       This is likely a result of ${IMAGE_DIGEST_TARGET} failing to build.
+       To debug, check that 'bazel build ${IMAGE_DIGEST_TARGET}' passes.
 EOF
     exit 4
 fi
@@ -71,7 +71,7 @@ workspace_root=$("${BAZEL_REAL}" info workspace)
 #
 # Ideally we'd use shasum-qualified labels but those seem to only work with
 # reference to remote images?
-container_image="$(cat "${workspace_root}/$("${BAZEL_REAL}" cquery --output=files "${IMAGE_PLATFORM_ARGS[@]}" "${IMAGE_LABEL_TARGET}" 2>/dev/null)")"
+container_image="$(cat "${workspace_root}/$("${BAZEL_REAL}" cquery --output=files "${IMAGE_PLATFORM_ARGS[@]}" "${IMAGE_DIGEST_TARGET}" 2>/dev/null)")"
 
 function ac {
     awk "{print \$${1};}"
@@ -152,8 +152,7 @@ shutdown)
 
 shell)
     maybe_start_container
-    # Default is a shell
-    exec docker exec -it "${container_id}"
+    exec docker exec -it "${container_id}" /bin/bash
     ;;
 
 *)

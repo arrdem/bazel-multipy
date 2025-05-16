@@ -1,3 +1,5 @@
+# -*- mode: dockerfile -*-
+
 FROM base:latest AS final
 ARG TARGETARCH  # Inspect the GOARCH target Docker is configured for
 
@@ -7,6 +9,8 @@ RUN ln -s /usr/bin/bazelisk /usr/bin/bazel
 
 # And install build base tools
 RUN <<EOF
+set -ex
+
 # Refresh the apt lists because we don't persist them.
 apt-get update
 

@@ -216,7 +216,7 @@
   "moduleExtensions": {
     "//tools/docker:buildx.bzl%buildx": {
       "general": {
-        "bzlTransitiveDigest": "rn48FCKSk2ptNX5S0P6WD0uI2EU4/PU7SRd7hjeFdo0=",
+        "bzlTransitiveDigest": "u5+22yRTJZpHmTyvnWbwqUr5FHk7xj+025A/I3t5Hvs=",
         "usagesDigest": "PtodS5KWjEJWAEm1i/FEMCYBiXFu7Yxk9J5XrG/pLZU=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},
