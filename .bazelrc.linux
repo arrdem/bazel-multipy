@@ -1,0 +1,2 @@
+# Prevent the containerized Linux build server from mucking with bazel-out on the host
+common --symlink_prefix=dazel-

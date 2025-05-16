@@ -5,72 +5,123 @@
 #  3 - container engine not found
 #  4 - failed to build/load the base image
 
-set -eu -o pipefail
+# Configuration
+#   The target Bazel should build to get a file containing the sha256 of an
+#   image to run as the devcontainer/server base.
+IMAGE_LABEL_TARGET="//tools/docker:dev.label"
 
+#   The docker compatibility marker platform. To prevent 'bazel build //...'
+#   trying to run docker in docker, we need to identify when the build
+#   configuration is Docker-capable, and platforms are the way to do that.
+IMAGE_PLATFORM_ARGS=(
+    --platforms=//tools/docker:platform
+)
+
+# Recursive support for calls outside of Docker
+# This script goes to BAZEL_REAL for some things which may come back here
 if [ -n "${TOOLS_BAZEL_NOWRAP:-}" ]; then
     args=("${@}")
     if [ -n "${TOOLS_BAZEL_STARTUP_OPTIONS:-}" ]; then
         args=("${TOOLS_BAZEL_STARTUP_OPTIONS[*]}" "${args[@]}")
     fi
     exec "${BAZEL_REAL}" "${args[@]}"
+else
+    # Set the recursion guard
+    export TOOLS_BAZEL_NOWRAP=1
 fi
 
-if command -v crictl >/dev/null 2>&1; then
-    if ! crictl info >/dev/null 2>&1; then
-        echo "Error: cri/containerd detected but doesn't seem to be running - please start containerd and try again!" >&2
-        exit 2
-    fi
-elif command -v docker >/dev/null 2>&1; then
-     if ! docker info >/dev/null 2>&1; then
-         echo "Error: Docker detected but doesn't seem to be running - please start docker and try again!" >&2
-         exit 2
-     fi
-elif command -v colima >/dev/null 2>&1; then
-    if ! colima status >/dev/null 2>&1; then
-        echo "Error: Colima detected but doesn't seem to be running - please start colima and try again!" >&2
+# FIXME: podman/crictl support?
+if command -v docker >/dev/null 2>&1; then
+    if ! docker info >/dev/null 2>&1; then
+        echo "ERROR: Docker detected but doesn't seem to be running - please start docker and try again!" >&2
         exit 2
     fi
 fi
 
-export TOOLS_BAZEL_NOWRAP=1
-
-if ! "${BAZEL_REAL}" run //tools/docker:base-ubuntu.load; then
-    echo "Error: Unable to load the configured base image!" >&2
+# rules_oci loads print out "Loaded image: <label>", try to extract that
+if ! "${BAZEL_REAL}" build "${IMAGE_PLATFORM_ARGS[@]}" "${IMAGE_LABEL_TARGET}" 1>/dev/null 2>&1; then
+    cat <<EOF >&2
+ERROR: Unable to load the configured base image!
+       This is likely a result of ${IMAGE_LABEL_TARGET} failing to build.
+       To debug, check that 'TOOLS_BAZEL_NOWRAP=1 bazel build ${IMAGE_LABEL_TARGET}' passes.
+EOF
     exit 4
 fi
+# Convert the image URI to its shasum so we can detect and for a restart if the
+# image we want to use changes. Ideally we'd use shasum-qualified labels but
+# those seem to only work with reference to remote images?
+container_image="$(cat "$("${BAZEL_REAL}" cquery --output=files "${IMAGE_PLATFORM_ARGS[@]}" "${IMAGE_LABEL_TARGET}" 2>/dev/null)")"
+
+function ac {
+    awk "{print \$${1};}"
+}
+
+function md5str {
+    md5sum | ac 1
+}
 
 workspace_root=$("${BAZEL_REAL}" info workspace)
-container_workdir="/work/$(basename "${workspace_root}")"
-container_id="dazel-$(basename "${workspace_root}")-$(echo "${workspace_root}" | sha1sum | cut -d' ' -f1)"
-server_id="$(echo "${container_workdir}" | sha1sum | cut -d' ' -f1)"
-container_server_root="$(dirname "$(bazel info install_base)")/${server_id}"
-# In order to preserve file permissions we have to run the container as the current user
+container_id_base="dazel-$(basename "${workspace_root}")"
 container_uid=$(id -u)
 container_gid=$(id -g)
+container_root="${workspace_root}"
+
+# We have to override the output-base so that we don't accidentally create an
+# output-base collision between Bazel outside of Docker and Bazel inside of
+# Docker. Bazel's default behavior is to use a hash of the path of the
+# workspace, and since we're mapping the workspace 1:1 into the container this
+# would otherwise create problems.
+container_output_base="${HOME}/.cache/bazel/_bazel_${USER}/$(echo "dazel-" "$(basename ${workspace_root})" | md5str)"
+
+# Note that because the output_base is dynamic we can't throw it in the bazelrc
+# without implementing interpolation on the bazelrc because that's not a
+# standard feature, so we just add it as an arg.
+container_args=(
+    --bazelrc=.bazelrc.linux
+    --output_base=${container_output_base}
+)
+
+function container_args {
+    # Helper for computing the Docker args so that we can content hash the
+    # container creation parameters and automate restarts if the fingerprint
+    # changes.
+    #
+    # Notes:
+    # - Due to JDK-8345296, we have to +SETPCAP
+    # - Bazelisk hangs unless we mount fresh SSL certs in
+    # - We're forcing Bazel to run with the current UID and GID to avoid fs permission issues
+    # - We're using ~/.cache[/bazel] as the root for all the server's persistent state
+    cat <<EOF
+--user=${container_uid}:${container_gid}
+--mount=type=bind,source=/etc/ssl/certs,target=/etc/ssl/certs
+--mount=type=bind,source=$HOME/.cache,target=$HOME/.cache
+--mount=type=bind,source=${workspace_root},target=${container_root}
+--cap-add=CAP_SETPCAP
+--env=USER=$(whoami)
+--env=HOME=$HOME
+--env=XDG_CACHE_HOME=$HOME/.cache
+--env=TOOLS_BAZEL_NOWRAP=1
+--workdir=${container_root}
+--entrypoint=/bin/bash
+${container_image}
+${container_root}/tools/docker/bazel-server.sh
+${container_args[@]}
+EOF
+}
+
+container_args_stamp=$(container_args | md5str | head -c8)
+container_id="${container_id_base}-$(echo "${workspace_root}" | md5str | head -c8)-${container_args_stamp}"
 
 # Note that we need to add a cap due to https://bugs.openjdk.org/browse/JDK-8345296
-if ! docker ps | grep -qe "${container_id}"; then
-    docker run \
-        --detach \
-        --rm \
-        --name="${container_id}" \
-        --user="${container_uid}:${container_gid}" \
-        --mount="type=bind,source=/etc/ssl/certs,target=/etc/ssl/certs" \
-        --mount="type=bind,source=$(realpath ~/.cache),target=/cache" \
-        --mount="type=bind,source=${workspace_root},target=${container_workdir}" \
-        --cap-add=CAP_SETPCAP \
-        -e "USER=$(whoami)" \
-        -e "XDG_CACHE_HOME=/cache" \
-        -e "TOOLS_BAZEL_NOWRAP=1" \
-        --workdir "${container_workdir}" \
-        --entrypoint="/bin/sh" \
-        "83f75b528965d4c86d93f4d587633946c33caa11168d61a03dc2e4272e591e2b" \
-        "${container_workdir}/tools/docker/bazel-server.sh"
+stale_containers=("$(docker container ls | grep -e "${container_id_base}-.*" | grep -v -e "${container_id}" | ac 1)")
+if [ -n "${stale_containers[@]}" ]; then
+    echo "WARNING: Bazel server container config has changed; forcing a restart" >&2;
+    docker container kill ${stale_containers[@]} >/dev/null
 fi
 
-# Shutdown doesn't seem to work quite right; hack it
-if [ "${1:-}" = "shutdown" ]; then
-    docker kill "${container_id}"
-else
-    docker exec -it "${container_id}" /usr/bin/bazel "$@"
+if ! grep -q -e "${container_id}" <(docker container ls); then
+    echo "INFO: Starting a new Bazel server container"
+    docker run --detach --rm --name="${container_id}" $(container_args) 1>/dev/null 2>&1
 fi
+
+docker exec -it "${container_id}" /usr/bin/bazel "${container_args[@]}" "$@"

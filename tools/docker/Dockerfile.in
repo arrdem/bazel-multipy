@@ -1,0 +1,25 @@
+# FIXME: Pin this image by shasum
+FROM ubuntu:25.04 AS final
+ARG TARGETARCH  # Inspect the GOARCH target Docker is configured for
+
+# Use Docker to download a bazelisk
+ADD --chmod=0755 https://github.com/bazelbuild/bazelisk/releases/download/v1.25.0/bazelisk-linux-${TARGETARCH} /usr/bin/bazelisk
+RUN ln -s /usr/bin/bazelisk /usr/bin/bazel
+
+# And install build base tools
+RUN <<EOF
+# Refresh the apt lists because we don't persist them.
+apt-get update
+
+# FIXME: It'd be nice to have a way to cross-reference a list of packages
+# against a lock, but Apt doesn't give us one. Would need some apt lock & apt
+# lock tool. Which can be done but is clunky and out of scope.
+apt-get install -y \
+   build-essential==12.12ubuntu1 \
+   gcc==4:14.2.0-1ubuntu1 \
+   g++==4:14.2.0-1ubuntu1
+
+# And clean up the caches so we don't bloat the image.
+# Need to do this after ANY apt step.
+rm -rf /var/cache/apt/archives /var/lib/apt/lists/*
+EOF

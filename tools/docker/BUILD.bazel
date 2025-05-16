@@ -1,14 +1,127 @@
-load("@rules_oci//oci:defs.bzl", "oci_image", "oci_load")
+load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
 
-oci_image(
-    name = "_base_image",
-    base = "@ubuntu",
-    entrypoint = ["bash"],
-    tars = [],
+# Platforms are a Bazel mechanism for activating groups of constraints. Targets
+# can mark themselves as requiring constraints to be satisfied in order to build
+# or run. If a target is incompatible with the current constrait set, it will be
+# skipped automatically.
+platform(
+    name = "platform",
+    constraint_values = [
+        ":docker_yes",
+    ],
 )
 
-oci_load(
-    name = "base-ubuntu.load",
-    image = ":_base_image",
-    repo_tags = ["multipy-base-ubuntu:latest"],
+# An underlying constraint used to establish that having (or not having) Docker
+# are two related and exclusive states.
+constraint_setting(
+    name = "_has_docker",
+    default_constraint_value = ":docker_no",
+)
+
+constraint_value(
+    name = "docker_yes",
+    constraint_setting = ":_has_docker",
+)
+
+constraint_value(
+    name = "docker_no",
+    constraint_setting = ":_has_docker",
+)
+
+sh_binary(
+    name = "base.load",
+    srcs = [
+        "load.sh",
+    ],
+    args = [
+        "$(location :Dockerfile-base)",
+        "base",
+    ],
+    data = [
+        ":Dockerfile-base",
+    ],
+)
+
+# This is ... more than a bit hacky and not representative of normal Bazel
+# at all. This is about as raw and unstructured as Bazel can get in fact.
+#
+# Because we want to invoke a script which does `docker build` under Bazel
+# in order to pretend that the build is idempotent and produce an image
+# label and hash, we have to disable sandboxing on this rule so that Docker
+# can do all sorts of stuff like talk to the network and twiddle Colima and
+# what have you.
+#
+# Because this can't possibly build unless there's a Docker present, this
+# target requires the docker constraint to be active, the normal state of
+# which is inactivity.
+#
+# But doing this lets us put the image into a file, which lets us keep using the
+# results of building
+genrule(
+    name = "base_details",
+    srcs = [
+        ":Dockerfile-base",
+    ],
+    outs = [
+        "base.label",
+        "base.digest",
+    ],
+    cmd = """set -ex;
+$(location :load.sh) $(location :Dockerfile-base) base | sed 's/Loaded image: //g' > $(location :base.label);
+docker images --quiet --no-trunc $$(cat $(location :base.label)) > $(location :base.digest);
+""",
+    tags = [
+        "no-sandbox",
+    ],
+    target_compatible_with = [
+        ":docker_yes",
+    ],
+    tools = [
+        ":load.sh",
+    ],
+)
+
+# Apply utterly naive templating to the dev dockerfile, note that we're using
+# the digest we got from building and loading the base container to define the
+# dev container.
+genrule(
+    name = "dockerfile_dev",
+    srcs = [
+        ":Dockerfile-dev.in",
+        ":base.label",
+        ":base.digest",
+    ],
+    outs = [
+        "Dockerfile-dev",
+    ],
+    cmd = """
+set -x;
+label=\"$$(cat $(location :base.label))\"
+sed -e \"s/{{base}}/$$label/g\" < $(location :Dockerfile-dev.in) > \"$@\"
+""",
+    tools = [],
+)
+
+genrule(
+    name = "dev_details",
+    srcs = [
+        ":Dockerfile-dev",
+    ],
+    outs = [
+        "dev.label",
+        "dev.digest",
+    ],
+    cmd = """set -ex;
+$(location :load.sh) $(location :Dockerfile-dev) dev --pull=false | sed 's/Loaded image: //g' > $(location :dev.label);
+docker images --quiet --no-trunc $$(cat $(location :dev.label)) > $(location :dev.digest);
+""",
+    tags = [
+        "no-sandbox",
+    ],
+    target_compatible_with = [
+        ":docker_yes",
+    ],
+    tools = [
+        ":load.sh",
+    ],
 )

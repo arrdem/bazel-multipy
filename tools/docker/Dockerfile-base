@@ -1,0 +1,2 @@
+# FIXME: Pin this image by shasum
+FROM ubuntu:25.04 AS final
