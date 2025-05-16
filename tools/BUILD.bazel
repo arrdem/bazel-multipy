@@ -18,5 +18,6 @@ bazel_env(
         for t in MULTITOOL_TOOLS
     } | {
         "monoformat": ":format",
+        "dazel": "//tools/dazel",
     },
 )

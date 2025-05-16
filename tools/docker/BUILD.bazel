@@ -1,33 +1,5 @@
 load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
 
-# Platforms are a Bazel mechanism for activating groups of constraints. Targets
-# can mark themselves as requiring constraints to be satisfied in order to build
-# or run. If a target is incompatible with the current constrait set, it will be
-# skipped automatically.
-platform(
-    name = "platform",
-    constraint_values = [
-        ":docker_yes",
-    ],
-)
-
-# An underlying constraint used to establish that having (or not having) Docker
-# are two related and exclusive states.
-constraint_setting(
-    name = "_has_docker",
-    default_constraint_value = ":docker_no",
-)
-
-constraint_value(
-    name = "docker_yes",
-    constraint_setting = ":_has_docker",
-)
-
-constraint_value(
-    name = "docker_no",
-    constraint_setting = ":_has_docker",
-)
-
 sh_binary(
     name = "base.load",
     srcs = [
@@ -74,52 +46,33 @@ docker images --quiet --no-trunc $$(cat $(location :base.label)) > $(location :b
         "no-sandbox",
     ],
     target_compatible_with = [
-        ":docker_yes",
+        "@docker_config//:docker_yes",
     ],
     tools = [
         ":load.sh",
     ],
 )
 
-# Apply utterly naive templating to the dev dockerfile, note that we're using
-# the digest we got from building and loading the base container to define the
-# dev container.
-genrule(
-    name = "dockerfile_dev",
-    srcs = [
-        ":Dockerfile-dev.in",
-        ":base.label",
-        ":base.digest",
-    ],
-    outs = [
-        "Dockerfile-dev",
-    ],
-    cmd = """
-set -x;
-label=\"$$(cat $(location :base.label))\"
-sed -e \"s/{{base}}/$$label/g\" < $(location :Dockerfile-dev.in) > \"$@\"
-""",
-    tools = [],
-)
-
 genrule(
     name = "dev_details",
     srcs = [
         ":Dockerfile-dev",
+        ":base.digest",
+        ":base.label",
     ],
     outs = [
         "dev.label",
         "dev.digest",
     ],
     cmd = """set -ex;
-$(location :load.sh) $(location :Dockerfile-dev) dev --pull=false | sed 's/Loaded image: //g' > $(location :dev.label);
+$(location :load.sh) $(location :Dockerfile-dev) dev --build-context base:latest=docker-image://$$(cat $(location :base.label)) | sed 's/Loaded image: //g' > $(location :dev.label);
 docker images --quiet --no-trunc $$(cat $(location :dev.label)) > $(location :dev.digest);
 """,
     tags = [
         "no-sandbox",
     ],
     target_compatible_with = [
-        ":docker_yes",
+        "@docker_config//:docker_yes",
     ],
     tools = [
         ":load.sh",

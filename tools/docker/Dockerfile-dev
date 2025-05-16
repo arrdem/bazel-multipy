@@ -1,4 +1,4 @@
-FROM {{base}} AS final
+FROM base:latest AS final
 ARG TARGETARCH  # Inspect the GOARCH target Docker is configured for
 
 # Use Docker to download a bazelisk

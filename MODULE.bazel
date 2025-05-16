@@ -77,3 +77,9 @@ use_repo(oci, "ubuntu", "ubuntu_linux_amd64", "ubuntu_linux_arm64_v8")
 multitool = use_extension("@rules_multitool//multitool:extension.bzl", "multitool")
 multitool.hub(lockfile = "//tools:multitool.lock.json")
 use_repo(multitool, "multitool")
+
+
+##########################
+# We use a custom repository extension to detect Docker and set some flags
+docker_ext = use_extension("//tools/docker:extension.bzl", "extension")
+use_repo(docker_ext, "docker_config")

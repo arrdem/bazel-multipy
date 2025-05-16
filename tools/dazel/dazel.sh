@@ -1,21 +1,21 @@
 #!/bin/bash
 
 # Exit codes:
-#  2 - container engine not running
-#  3 - container engine not found
-#  4 - failed to build/load the base image
+#   2 - container engine not running
+#   3 - container engine not found
+#   4 - failed to build/load the base image
+#   5 - failed to identify a local Bazelisk/Bazel binary
+
+BAZEL_REAL=$(which -a bazelisk bazel 2>/dev/null | head -n 1)
+if [ -z "${BAZEL_REAL}" ]; then
+    echo "ERROR: Failed to identify a real Bazel binary!" >&2
+    exit 5
+fi
 
 # Configuration
-#   The target Bazel should build to get a file containing the sha256 of an
-#   image to run as the devcontainer/server base.
+#   The target we should build to get a file containing the label of an image to
+#   run as the devcontainer/server base.
 IMAGE_LABEL_TARGET="//tools/docker:dev.label"
-
-#   The docker compatibility marker platform. To prevent 'bazel build //...'
-#   trying to run docker in docker, we need to identify when the build
-#   configuration is Docker-capable, and platforms are the way to do that.
-IMAGE_PLATFORM_ARGS=(
-    --platforms=//tools/docker:platform
-)
 
 # Recursive support for calls outside of Docker
 # This script goes to BAZEL_REAL for some things which may come back here
@@ -39,7 +39,7 @@ if command -v docker >/dev/null 2>&1; then
 fi
 
 # rules_oci loads print out "Loaded image: <label>", try to extract that
-if ! "${BAZEL_REAL}" build "${IMAGE_PLATFORM_ARGS[@]}" "${IMAGE_LABEL_TARGET}" 1>/dev/null 2>&1; then
+if ! "${BAZEL_REAL}" build "${IMAGE_LABEL_TARGET}" 1>/dev/null 2>&1; then
     cat <<EOF >&2
 ERROR: Unable to load the configured base image!
        This is likely a result of ${IMAGE_LABEL_TARGET} failing to build.
@@ -47,9 +47,12 @@ ERROR: Unable to load the configured base image!
 EOF
     exit 4
 fi
-# Convert the image URI to its shasum so we can detect and for a restart if the
-# image we want to use changes. Ideally we'd use shasum-qualified labels but
-# those seem to only work with reference to remote images?
+
+# Convert the image label to its shasum so we can detect and for a restart if
+# the image we want to use changes.
+#
+# Ideally we'd use shasum-qualified labels but those seem to only work with
+# reference to remote images?
 container_image="$(cat "$("${BAZEL_REAL}" cquery --output=files "${IMAGE_PLATFORM_ARGS[@]}" "${IMAGE_LABEL_TARGET}" 2>/dev/null)")"
 
 function ac {
@@ -115,7 +118,7 @@ container_id="${container_id_base}-$(echo "${workspace_root}" | md5str | head -c
 # Note that we need to add a cap due to https://bugs.openjdk.org/browse/JDK-8345296
 stale_containers=("$(docker container ls | grep -e "${container_id_base}-.*" | grep -v -e "${container_id}" | ac 1)")
 if [ -n "${stale_containers[@]}" ]; then
-    echo "WARNING: Bazel server container config has changed; forcing a restart" >&2;
+    echo "WARNING: Bazel server container config has changed; forcing a restart" >&2
     docker container kill ${stale_containers[@]} >/dev/null
 fi
 
