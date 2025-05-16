@@ -1,55 +1,71 @@
+load("@buildx//:defs.bzl", "buildx", "context")
+load("@rules_oci//oci:defs.bzl", "oci_image", "oci_load")
 load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
 
-sh_binary(
-    name = "base.load",
-    srcs = [
-        "load.sh",
+buildx(
+    name = "base_buildx_image",
+    build_context = [
+        # replaces FROM python:3.11.9-bullseye with @ubuntu from oci_pull
+        context.oci_layout(
+            "ubuntu:25.04",
+            "@ubuntu",
+        ),
     ],
-    args = [
-        "$(location :Dockerfile-base)",
-        "base",
-    ],
-    data = [
-        ":Dockerfile-base",
-    ],
+    dockerfile = ":Dockerfile-base",
 )
 
-# This is ... more than a bit hacky and not representative of normal Bazel
-# at all. This is about as raw and unstructured as Bazel can get in fact.
-#
-# Because we want to invoke a script which does `docker build` under Bazel
-# in order to pretend that the build is idempotent and produce an image
-# label and hash, we have to disable sandboxing on this rule so that Docker
-# can do all sorts of stuff like talk to the network and twiddle Colima and
-# what have you.
-#
-# Because this can't possibly build unless there's a Docker present, this
-# target requires the docker constraint to be active, the normal state of
-# which is inactivity.
-#
-# But doing this lets us put the image into a file, which lets us keep using the
-# results of building
+oci_image(
+    name = "base_oci_image",
+    base = ":base_buildx_image",
+)
+
+oci_load(
+    name = "base.load",
+    image = ":base_oci_image",
+    repo_tags = ["base:latest"],
+)
+
+buildx(
+    name = "dev_buildx_image",
+    build_context = [
+        # replaces FROM python:3.11.9-bullseye with @ubuntu from oci_pull
+        context.oci_layout(
+            "base:latest",
+            ":base_oci_image",
+        ),
+    ],
+    dockerfile = ":Dockerfile-dev",
+)
+
+oci_image(
+    name = "dev_oci_image",
+    base = ":dev_buildx_image",
+)
+
+oci_load(
+    name = "dev.load",
+    image = ":dev_oci_image",
+    repo_tags = ["dev:latest"],
+)
+
 genrule(
     name = "base_details",
-    srcs = [
-        ":Dockerfile-base",
-    ],
     outs = [
         "base.label",
         "base.digest",
     ],
     cmd = """set -ex;
-$(location :load.sh) $(location :Dockerfile-base) base | sed 's/Loaded image: //g' > $(location :base.label);
+$(location :base.load) | awk -F: '/Loaded image:/ { print $$2 ":" $$3 }' > $(location :base.label);
 docker images --quiet --no-trunc $$(cat $(location :base.label)) > $(location :base.digest);
 """,
     tags = [
-        "no-sandbox",
+        "no-cache",
     ],
     target_compatible_with = [
         "@docker_config//:docker_yes",
     ],
     tools = [
-        ":load.sh",
+        ":base.load",
     ],
 )
 
@@ -65,16 +81,16 @@ genrule(
         "dev.digest",
     ],
     cmd = """set -ex;
-$(location :load.sh) $(location :Dockerfile-dev) dev --build-context base:latest=docker-image://$$(cat $(location :base.label)) | sed 's/Loaded image: //g' > $(location :dev.label);
+$(location :dev.load) | awk -F: '/Loaded image:/ { print $$2 ":" $$3 }' > $(location :dev.label);
 docker images --quiet --no-trunc $$(cat $(location :dev.label)) > $(location :dev.digest);
 """,
     tags = [
-        "no-sandbox",
+        "no-cache",
     ],
     target_compatible_with = [
         "@docker_config//:docker_yes",
     ],
     tools = [
-        ":load.sh",
+        ":dev.load",
     ],
 )

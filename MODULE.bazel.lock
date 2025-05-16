@@ -214,16 +214,99 @@
   },
   "selectedYankedVersions": {},
   "moduleExtensions": {
-    "//tools/docker:extension.bzl%extension": {
+    "//tools/docker:buildx.bzl%buildx": {
+      "general": {
+        "bzlTransitiveDigest": "rn48FCKSk2ptNX5S0P6WD0uI2EU4/PU7SRd7hjeFdo0=",
+        "usagesDigest": "PtodS5KWjEJWAEm1i/FEMCYBiXFu7Yxk9J5XrG/pLZU=",
+        "recordedFileInputs": {},
+        "recordedDirentsInputs": {},
+        "envVariables": {},
+        "generatedRepoSpecs": {
+          "buildx_linux-arm64": {
+            "repoRuleId": "@@bazel_tools//tools/build_defs/repo:http.bzl%http_file",
+            "attributes": {
+              "urls": [
+                "https://github.com/docker/buildx/releases/download/v0.22.0/buildx-v0.22.0.linux-arm64"
+              ],
+              "sha256": "6e9e455b5ec1c7ac708f2640a86c5cecce38c72e48acff6cb219dfdfa2dda781",
+              "executable": true
+            }
+          },
+          "buildx_linux-amd64": {
+            "repoRuleId": "@@bazel_tools//tools/build_defs/repo:http.bzl%http_file",
+            "attributes": {
+              "urls": [
+                "https://github.com/docker/buildx/releases/download/v0.22.0/buildx-v0.22.0.linux-amd64"
+              ],
+              "sha256": "805195386fba0cea5a1487cf0d47da82a145ea0a792bd3fb477583e2dbcdcc2f",
+              "executable": true
+            }
+          },
+          "buildx_darwin-arm64": {
+            "repoRuleId": "@@bazel_tools//tools/build_defs/repo:http.bzl%http_file",
+            "attributes": {
+              "urls": [
+                "https://github.com/docker/buildx/releases/download/v0.22.0/buildx-v0.22.0.darwin-arm64"
+              ],
+              "sha256": "5898c338abb1f673107bc087997dc3cb63b4ea66d304ce4223472f57bd8d616e",
+              "executable": true
+            }
+          },
+          "buildx_darwin-amd64": {
+            "repoRuleId": "@@bazel_tools//tools/build_defs/repo:http.bzl%http_file",
+            "attributes": {
+              "urls": [
+                "https://github.com/docker/buildx/releases/download/v0.22.0/buildx-v0.22.0.darwin-amd64"
+              ],
+              "sha256": "5221ad6b8acd2283f8fbbeebc79ae4b657e83519ca1c1e4cfbb9405230b3d933",
+              "executable": true
+            }
+          },
+          "buildx": {
+            "repoRuleId": "@@//tools/docker:buildx.bzl%configure_buildx",
+            "attributes": {
+              "buildx": "@@+buildx+buildx_darwin-arm64//file:downloaded",
+              "buildx_platforms": {
+                "@@+buildx+buildx_linux-amd64//file:file": "@bazel_tools//src/conditions:linux_x86_64",
+                "@@+buildx+buildx_linux-arm64//file:file": "@bazel_tools//src/conditions:linux_aarch64",
+                "@@+buildx+buildx_darwin-amd64//file:file": "@bazel_tools//src/conditions:darwin_x86_64",
+                "@@+buildx+buildx_darwin-arm64//file:file": "@bazel_tools//src/conditions:darwin_arm64"
+              }
+            }
+          }
+        },
+        "moduleExtensionMetadata": {
+          "explicitRootModuleDirectDeps": [
+            "buildx"
+          ],
+          "explicitRootModuleDirectDevDeps": [],
+          "useAllRepos": "NO",
+          "reproducible": false
+        },
+        "recordedRepoMappingEntries": [
+          [
+            "",
+            "aspect_bazel_lib",
+            "aspect_bazel_lib+"
+          ],
+          [
+            "",
+            "bazel_tools",
+            "bazel_tools"
+          ]
+        ]
+      }
+    },
+    "//tools/docker:config.bzl%extension": {
       "general": {
         "bzlTransitiveDigest": "KtjFYxvcUJmXEDJqqqSeGaRNHwrubeNLvYXE3lq0mZE=",
-        "usagesDigest": "bBWPSDzW1B/PEQZua7tN/a2KzdiDU6oxfCET9E4Vw7A=",
+        "usagesDigest": "X6ikRsl300s978dzughEunJLWIU0rbBFtDtPzVWk6zM=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},
         "envVariables": {},
         "generatedRepoSpecs": {
           "docker_config": {
-            "repoRuleId": "@@//tools/docker:extension.bzl%docker_config",
+            "repoRuleId": "@@//tools/docker:config.bzl%docker_config",
             "attributes": {}
           }
         },
@@ -660,7 +743,7 @@
     "@@rules_oci+//oci:extensions.bzl%oci": {
       "general": {
         "bzlTransitiveDigest": "ZmDl3PvAveXuuoqtA9iaBgdjbqMUZYThFAHAHppRqX0=",
-        "usagesDigest": "MHQNh7BOnmjKPc8gubqpdKHDaE0hujAvKyjXnRHc1zo=",
+        "usagesDigest": "EjyGbNDQMIkTad0jcbQbXV7hAs1iec26KGSZmD/E2Vs=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},
         "envVariables": {},
@@ -671,7 +754,7 @@
               "scheme": "https",
               "registry": "index.docker.io",
               "repository": "library/ubuntu",
-              "identifier": "sha256:80dd3c3b9c6cecb9f1667e9290b3bc61b78c2678c02cbdae5f0fea92cc6734ab",
+              "identifier": "sha256:79efa276fdefa2ee3911db29b0608f8c0561c347ec3f4d4139980d43b168d991",
               "platform": "linux/arm64/v8",
               "target_name": "ubuntu_linux_arm64_v8",
               "bazel_tags": []
@@ -683,7 +766,7 @@
               "scheme": "https",
               "registry": "index.docker.io",
               "repository": "library/ubuntu",
-              "identifier": "sha256:80dd3c3b9c6cecb9f1667e9290b3bc61b78c2678c02cbdae5f0fea92cc6734ab",
+              "identifier": "sha256:79efa276fdefa2ee3911db29b0608f8c0561c347ec3f4d4139980d43b168d991",
               "platform": "linux/amd64",
               "target_name": "ubuntu_linux_amd64",
               "bazel_tags": []
@@ -696,7 +779,7 @@
               "scheme": "https",
               "registry": "index.docker.io",
               "repository": "library/ubuntu",
-              "identifier": "sha256:80dd3c3b9c6cecb9f1667e9290b3bc61b78c2678c02cbdae5f0fea92cc6734ab",
+              "identifier": "sha256:79efa276fdefa2ee3911db29b0608f8c0561c347ec3f4d4139980d43b168d991",
               "platforms": {
                 "@@platforms//cpu:arm64": "@ubuntu_linux_arm64_v8",
                 "@@platforms//cpu:x86_64": "@ubuntu_linux_amd64"
