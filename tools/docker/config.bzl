@@ -38,6 +38,7 @@ def _config_repo_impl(rctx):
     rctx.watch("/bin/docker")
     rctx.watch("/usr/bin/docker")
     rctx.watch("/usr/local/bin/docker")
+    rctx.watch("/var/run/docker.sock")
 
     docker = rctx.which("docker")
     flag = "yes" if docker else "no"
