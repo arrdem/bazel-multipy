@@ -9,7 +9,7 @@ Highlights:
 - `rules_python` used to fetch a hermetic Python toolchain and Pip deps; see `MODULE.bazel` for details.
 - `aspect_rules_py` used to provide familiar Pytest flows
 - `//tools/docker` implements building a "base" and "dev" image
-- `//tools/dazel:dazel` implements builds under Docker with a persistent devcontainer defined by `//tools/docker`
+- `//tools/dazel:dazel` implements builds under Docker with a persistent devcontainer defined using `rules_oci`
 - `bazel_env` + `direnv` puts `dazel` on the `$PATH` for convenience
 
 Key features:
@@ -20,12 +20,8 @@ Key features:
 Possible refinements:
 - The `dazel` tool is quick work and could use refinement
 - The `dazel` tool could try to mount the Docker socket through to the dev container for DIND shenanigans
-- Create a `:base.push` verb to push the base container to a shared registry
-- Use an OCI image pull in the `MODULE.bazel` from a shared registry as a base to define application containers _without_ the `RUN` shenanigans
-- Create a `:base.update` verb which leverages `:base.push` to generate a registry fingerprint for the container and patch that into an OCI image pull in the `MODULE.bazel`
-- The `//tools/docker` flow using `genrule` is ... unidiomatic.
-- While the `:dev.label` and `:dev.digest` targets are cute and highly effective, Docker image cleanups could invalidate them silently.
-  It would be better albeit slower to create an explicit post-build export/import phase which would allow Bazel to persist the image definition.
+- The `:*.digest` rules being uncacheable is proof against Docker engine cleans, but a bit slow.
+  Slightly risky operationally but would be faster to allow the loaded digests to cache so that Dazel can hit the cache.
 
 ## License
 

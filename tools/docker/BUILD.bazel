@@ -2,6 +2,8 @@ load("@buildx//:defs.bzl", "buildx", "context")
 load("@rules_oci//oci:defs.bzl", "oci_image", "oci_load")
 load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
 
+package(default_visibility = ["//visibility:public"])
+
 buildx(
     name = "base_buildx_image",
     build_context = [
