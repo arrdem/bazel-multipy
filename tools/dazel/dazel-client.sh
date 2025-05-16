@@ -59,7 +59,7 @@ if ! "${BAZEL_REAL}" build "${IMAGE_LABEL_TARGET}" 1>/dev/null 2>&1; then
     cat <<EOF >&2
 ERROR: Unable to load the configured base image!
        This is likely a result of ${IMAGE_LABEL_TARGET} failing to build.
-       To debug, check that 'TOOLS_BAZEL_NOWRAP=1 bazel build ${IMAGE_LABEL_TARGET}' passes.
+       To debug, check that 'bazel build ${IMAGE_LABEL_TARGET}' passes.
 EOF
     exit 4
 fi
