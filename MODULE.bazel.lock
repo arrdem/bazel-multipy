@@ -299,7 +299,7 @@
     },
     "//tools/docker:config.bzl%extension": {
       "general": {
-        "bzlTransitiveDigest": "KtjFYxvcUJmXEDJqqqSeGaRNHwrubeNLvYXE3lq0mZE=",
+        "bzlTransitiveDigest": "vBiuK1gWaq6lFikgNTsHeZouO9Q6ArKb7a0u+wevMO4=",
         "usagesDigest": "X6ikRsl300s978dzughEunJLWIU0rbBFtDtPzVWk6zM=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},
