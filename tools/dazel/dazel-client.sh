@@ -116,7 +116,6 @@ EOF
 container_args_stamp=$(container_args | md5str | head -c8)
 container_id="${container_id_base}-$(echo "${workspace_root}" | md5str | head -c8)-${container_args_stamp}"
 
-# Note that we need to add a cap due to https://bugs.openjdk.org/browse/JDK-8345296
 stale_containers=("$(docker container ls | grep -e "${container_id_base}-.*" | grep -v -e "${container_id}" | ac 1)")
 if [ -n "${stale_containers[@]}" ]; then
     echo "WARNING: Bazel server container config has changed; forcing a restart" >&2
