@@ -1,21 +1,37 @@
 #!/bin/bash
 
+####################
+# Docs
+
+# Usage:
+#   dazel <bazel verb> [bazel options]
+#
+#   Dazel will run Bazel inside Docker for you, with some refinements to make it
+#   efficient to do so as a central part of your workflow.
+#
+#   Note that Dazel relies on a persistent helper process monitoring the Bazel
+#   server process, so `shutdown` and providing startup options which force
+#   server restarts could cause problems.
+
+# Configuration
+#   The target we should build to get a file containing the label of an image to
+#   run as the devcontainer/server base.
+IMAGE_LABEL_TARGET="//tools/docker:dev.label"
+
 # Exit codes:
 #   2 - container engine not running
 #   3 - container engine not found
 #   4 - failed to build/load the base image
 #   5 - failed to identify a local Bazelisk/Bazel binary
 
-BAZEL_REAL=$(which -a bazelisk bazel 2>/dev/null | head -n 1)
+####################
+# Begin script
+
+: "${BAZEL_REAL:=$(which -a bazelisk bazel 2>/dev/null | head -n 1)}"
 if [ -z "${BAZEL_REAL}" ]; then
     echo "ERROR: Failed to identify a real Bazel binary!" >&2
     exit 5
 fi
-
-# Configuration
-#   The target we should build to get a file containing the label of an image to
-#   run as the devcontainer/server base.
-IMAGE_LABEL_TARGET="//tools/docker:dev.label"
 
 # Recursive support for calls outside of Docker
 # This script goes to BAZEL_REAL for some things which may come back here
