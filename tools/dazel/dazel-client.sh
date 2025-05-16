@@ -145,9 +145,14 @@ function maybe_start_container {
     fi
 }
 
-case "$1" in
+function punt {
+    maybe_start_container
+    exec docker exec -it "${container_id}" /usr/bin/bazel "${container_args[@]}" "$@"
+}
+
+case "${1}" in
 shutdown)
-    docker kill "${container_id}"
+    docker kill $(docker container ls | grep -e "${container_id_base}-.*" | ac 1)
     ;;
 
 shell)
@@ -155,8 +160,29 @@ shell)
     exec docker exec -it "${container_id}" /bin/bash
     ;;
 
+help | --help | '')
+    cat <<EOF
+Usage:
+  dazel <command> <options> ...
+
+  Dazel is a wrapper for invoking Bazel inside of a Bazel-defined devcontainer.
+
+  The currently configured container digest is:
+     ${IMAGE_DIGEST_TARGET}
+     ${container_image}
+
+Available commands:
+  dazel help           -- Show this message
+  dazel shell          -- Get a shell in the devcontainer
+  dazel shutdown       -- Stop the devcontainer
+  dazel <command> ...  -- Otherwise forwarded to the container as 'bazel ...'
+
+Bazel help follows
+---
+EOF
+    punt "$@"
+    ;;
 *)
-    maybe_start_container
-    exec docker exec -it "${container_id}" /usr/bin/bazel "${container_args[@]}" "$@"
+    punt "$@"
     ;;
 esac
